@@ -1,9 +1,9 @@
 import sys
-
 import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
 import pygame
+import time
 
 sampled_map = np.load('Sampled_map.npy')
 colmns, rows = sampled_map.shape[1], sampled_map.shape[0]
@@ -16,6 +16,10 @@ size = ((dl + margin) * colmns, (dl + margin) * rows)
 koef_obj = 0.85  # коэффициент размера объектов в клетке
 w_adj, w_diag = 1, round(2 ** 0.5,
                          1)  # веса рёбер для соседних и диагональных вершин
+fps_static = 60
+fps_move = 2
+fps = fps_static
+
 print(size)
 print(dl)
 print(sampled_map.shape)
@@ -54,9 +58,16 @@ def draw_start(ind_x, ind_y):
                      (x_t + (dl - ds) / 2, y_t + (dl - ds) / 2, ds, ds))
 
 
-def dijkstra():
-    print('start D')
-    pass
+def dijkstra(s, f):
+    # global index_bot
+    print(s, f)
+    print('Dijkstra in progress...')
+    print(nx.dijkstra_path(G, s, f))
+    # path = nx.dijkstra_path(G, s, f)
+    # for i, cell in enumerate(path):
+    #     index_bot = [cell % sampled_map.shape[1], cell // sampled_map.shape[1]]
+    print('Complete')
+    return nx.dijkstra_path(G, s, f)
 
 
 def a_star():
@@ -218,8 +229,9 @@ for i in range(len(sampled_map)):
                 if not sampled_map[i][j - 1][2] and not sampled_map[i - 1][j][
                     2] and not sampled_map[i - 1][j - 1][2]:  # лв
                     G.add_edge(name, name - sampled_map.shape[1] - 1)
-print(G.nodes())
-
+# print(len(G.nodes()), G.nodes())
+# print(len(G.edges()), G.edges())
+# print(nx.dijkstra_path(G, 0, 20))
 red, blue = (255, 0, 0), (0, 0, 255)
 green, pink = (51, 204, 51), (255, 0, 255)
 yellow = (255, 153, 0)
@@ -228,6 +240,7 @@ index_start = [-10, -10]
 index_finish = [-10, -10]
 isInProgress = False
 isSetObj = [False, False]  # start/bot, finish
+clock = pygame.time.Clock()
 while True:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -235,11 +248,12 @@ while True:
             sys.exit(0)
         elif event.type == pygame.MOUSEBUTTONDOWN:
             mouse_xy = pygame.mouse.get_pos()
-            print(mouse_xy)
-            print(index_bot)
+            # print(mouse_xy)
+            # print(index_bot)
             indexes = [(mouse_xy[0] - offset[0]) // (dl + margin),
                        (mouse_xy[1] - offset[1]) // (dl + margin)]
             if not isInProgress:
+                fps = fps_static
                 if not sampled_map[indexes[1]][indexes[0]][2]:
                     if event.button == 1:
                         index_start = indexes
@@ -252,15 +266,23 @@ while True:
             if isSetObj[0] * isSetObj[1]:
                 if event.key == pygame.K_d:
                     isInProgress = True
-                    dijkstra()
-                    isInProgress = False
+                    print('s', index_start)
+                    print('f', index_finish)
+                    path = dijkstra(
+                        index_start[1] * sampled_map.shape[1] + index_start[0],
+                        index_finish[1] * sampled_map.shape[1] + index_finish[
+                            0])
+                    fps = fps_move
+                    # isInProgress = False
                 elif event.key == pygame.K_a:
                     isInProgress = True
                     a_star()
+                    path = [0]
                     isInProgress = False
                 elif event.key == pygame.K_r:
                     isInProgress = True
                     rrt()
+                    path = [0]
                     isInProgress = False
 
     for i in range(len(sampled_map)):
@@ -280,10 +302,20 @@ while True:
     draw_finish(index_finish[0], index_finish[1])
     draw_bot(index_bot[0], index_bot[1])
 
+    if isInProgress:
+        if len(path) > 0:
+            cell = path.pop(0)
+            print(cell)
+            index_bot = [cell % sampled_map.shape[1],
+                         cell // sampled_map.shape[1]]
+        else:
+            isInProgress = False
+
+
     # pos = nx.spring_layout(G)  # pos = nx.nx_agraph.graphviz_layout(G)
     # nx.draw_networkx(G, pos)
     # labels = nx.get_edge_attributes(G, 'weight')
     # nx.draw_networkx_edge_labels(G, pos, edge_labels=labels)
     # plt.show()
-
+    clock.tick(fps)
     pygame.display.update()

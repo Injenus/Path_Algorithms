@@ -136,172 +136,73 @@ for i in range(len(sampled_map)):
             if i == 0:  # если верхняя строка
                 if j == 0:  # если левый столбей
                     # name = 0
-                    if not sampled_map[i][j + 1][2]:
-                        G.add_edge(name, name + 1, weight=w_adj)
-                    if not sampled_map[i + 1][j][2]:
-                        G.add_edge(name, name + sampled_map.shape[1],
-                                   weight=w_adj)
+                    check_right(name, i, j)
+                    check_down(name, i, j)
                     # diag
-                    if not sampled_map[i][j + 1][2] and not \
-                            sampled_map[i + 1][j][
-                                2] and not sampled_map[i + 1][j + 1][2]:
-                        G.add_edge(name, name + sampled_map.shape[1] + 1,
-                                   weight=w_diag)
+                    check_rd(name, i, j)
                 elif j == sampled_map.shape[1] - 1:  # если правый столбец
                     # name = sampled_map.shape[1] - 1
-                    if not sampled_map[i + 1][j][2]:
-                        G.add_edge(name, name + sampled_map.shape[1],
-                                   weight=w_adj)
-                    if not sampled_map[i][j - 1][2]:
-                        G.add_edge(name, name - 1, weight=w_adj)
+                    check_down(name, i, j)
+                    check_left(name, i, j)
                     # diag
-                    if not sampled_map[i + 1][j][2] and not \
-                            sampled_map[i][j - 1][
-                                2] and not sampled_map[i + 1][j - 1][2]:
-                        G.add_edge(name, name + sampled_map.shape[1] - 1,
-                                   weight=w_diag)
+                    check_ld(name, i, j)
                 else:  # если остальное (не пров. верх. и пв и лв)
                     # name = j
-                    if not sampled_map[i][j + 1][2]:  # право
-                        G.add_edge(name, name + 1, weight=w_adj)
-                    if not sampled_map[i + 1][j][2]:  # низ
-                        G.add_edge(name, name + sampled_map.shape[1],
-                                   weight=w_adj)
-                    if not sampled_map[i][j - 1][2]:  # лево
-                        G.add_edge(name, name - 1, weight=w_adj)
+                    check_right(name, i, j)
+                    check_down(name, i, j)
+                    check_left(name, i, j)
                     # диаг
-                    if not sampled_map[i][j + 1][2] and not \
-                            sampled_map[i + 1][j][
-                                2] and not sampled_map[i + 1][j + 1][2]:  # пн
-                        G.add_edge(name, name + sampled_map.shape[1] + 1,
-                                   weight=w_diag)
-                    if not sampled_map[i + 1][j][2] and not \
-                            sampled_map[i][j - 1][
-                                2] and not sampled_map[i + 1][j - 1][2]:  # лн
-                        G.add_edge(name, name + sampled_map.shape[1] - 1,
-                                   weight=w_diag)
-
+                    check_rd(name, i, j)
+                    check_ld(name, i, j)
 
             elif i == sampled_map.shape[0] - 1:  # если нижняя строка
                 if j == 0:  # если левый столбей
-                    if not sampled_map[i - 1][j][2]:  # верх
-                        G.add_edge(name, name - sampled_map.shape[1],
-                                   weight=w_adj)
-                    if not sampled_map[i][j + 1][2]:  # право
-                        G.add_edge(name, name + 1, weight=w_adj)
+                    check_up(name, i, j)
+                    check_right(name, i, j)
                     # diag
-                    if not sampled_map[i - 1][j][2] and not \
-                            sampled_map[i][j + 1][
-                                2] and not sampled_map[i - 1][j + 1][2]:  # пв
-                        G.add_edge(name, name - sampled_map.shape[1] + 1,
-                                   weight=w_diag)
+                    check_ru(name, i, j)
                 elif j == sampled_map.shape[1] - 1:  # если правый столбец
-                    if not sampled_map[i - 1][j][2]:  # верх
-                        G.add_edge(name, name - sampled_map.shape[1],
-                                   weight=w_adj)
-                    if not sampled_map[i][j - 1][2]:  # лево
-                        G.add_edge(name, name - 1, weight=w_adj)
+                    check_up(name, i, j)
+                    check_left(name, i, j)
                     # diag
-                    if not sampled_map[i][j - 1][2] and not \
-                            sampled_map[i - 1][j][
-                                2] and not sampled_map[i - 1][j - 1][2]:  # лв
-                        G.add_edge(name, name - sampled_map.shape[1] - 1)
-
+                    check_lu(name, i, j)
                 else:  # если остальное (кроме низ, пн, лн)
-                    if not sampled_map[i - 1][j][2]:  # верх
-                        G.add_edge(name, name - sampled_map.shape[1],
-                                   weight=w_adj)
-                    if not sampled_map[i][j + 1][2]:  # право
-                        G.add_edge(name, name + 1, weight=w_adj)
-                    if not sampled_map[i][j - 1][2]:  # лево
-                        G.add_edge(name, name - 1, weight=w_adj)
+                    check_up(name, i, j)
+                    check_right(name, i, j)
+                    check_left(name, i, j)
                     # diag
-                    if not sampled_map[i - 1][j][2] and not \
-                            sampled_map[i][j + 1][
-                                2] and not sampled_map[i - 1][j + 1][2]:  # пв
-                        G.add_edge(name, name - sampled_map.shape[1] + 1,
-                                   weight=w_diag)
-                    if not sampled_map[i][j - 1][2] and not \
-                            sampled_map[i - 1][j][
-                                2] and not sampled_map[i - 1][j - 1][2]:  # лв
-                        G.add_edge(name, name - sampled_map.shape[1] - 1)
+                    check_ru(name, i, j)
+                    check_lu(name, i, j)
 
             else:  # любая другая строка
                 if j == 0:  # если левый столбей (кроме лево, лн, лв)
-                    if not sampled_map[i - 1][j][2]:  # верх
-                        G.add_edge(name, name - sampled_map.shape[1],
-                                   weight=w_adj)
-                    if not sampled_map[i][j + 1][2]:  # право
-                        G.add_edge(name, name + 1, weight=w_adj)
-                    if not sampled_map[i + 1][j][2]:  # низ
-                        G.add_edge(name, name + sampled_map.shape[1],
-                                   weight=w_adj)
+                    check_up(name, i, j)
+                    check_right(name, i, j)
+                    check_down(name, i, j)
                     # diag
-                    if not sampled_map[i - 1][j][2] and not \
-                            sampled_map[i][j + 1][
-                                2] and not sampled_map[i - 1][j + 1][2]:  # пв
-                        G.add_edge(name, name - sampled_map.shape[1] + 1,
-                                   weight=w_diag)
-                    if not sampled_map[i][j + 1][2] and not \
-                            sampled_map[i + 1][j][
-                                2] and not sampled_map[i + 1][j + 1][2]:  # пн
-                        G.add_edge(name, name + sampled_map.shape[1] + 1,
-                                   weight=w_diag)
+                    check_ru(name, i, j)
+                    check_rd(name, i, j)
                 elif j == sampled_map.shape[
                     1] - 1:  # if прав.стл. (кр. право, пв, пн)
-                    if not sampled_map[i - 1][j][2]:  # верх
-                        G.add_edge(name, name - sampled_map.shape[1],
-                                   weight=w_adj)
-                    if not sampled_map[i + 1][j][2]:  # низ
-                        G.add_edge(name, name + sampled_map.shape[1],
-                                   weight=w_adj)
-                    if not sampled_map[i][j - 1][2]:  # лево
-                        G.add_edge(name, name - 1, weight=w_adj)
+                    check_up(name, i, j)
+                    check_down(name, i, j)
+                    check_left(name, i, j)
                     # diag
-                    if not sampled_map[i + 1][j][2] and not \
-                            sampled_map[i][j - 1][
-                                2] and not sampled_map[i + 1][j - 1][2]:  # лн
-                        G.add_edge(name, name + sampled_map.shape[1] - 1,
-                                   weight=w_diag)
-                    if not sampled_map[i][j - 1][2] and not \
-                            sampled_map[i - 1][j][
-                                2] and not sampled_map[i - 1][j - 1][2]:  # лв
-                        G.add_edge(name, name - sampled_map.shape[1] - 1)
+                    check_ld(name, i, j)
+                    check_lu(name, i, j)
                 else:  # если остальное
                     # name = sampled_map.shape[1] * i + j
                     # проверяем по часовой сверху, сначала прямые, потом диагонали
-                    if not sampled_map[i - 1][j][2]:  # верх
-                        G.add_edge(name, name - sampled_map.shape[1],
-                                   weight=w_adj)
-                    if not sampled_map[i][j + 1][2]:  # право
-                        G.add_edge(name, name + 1, weight=w_adj)
-                    if not sampled_map[i + 1][j][2]:  # низ
-                        G.add_edge(name, name + sampled_map.shape[1],
-                                   weight=w_adj)
-                    if not sampled_map[i][j - 1][2]:  # лево
-                        G.add_edge(name, name - 1, weight=w_adj)
+                    check_up(name, i, j)
+                    check_right(name, i, j)
+                    check_down(name, i, j)
+                    check_left(name, i, j)
 
                     # диагональные проверяем: (пв, пн, лн, лв)
-                    if not sampled_map[i - 1][j][2] and not \
-                            sampled_map[i][j + 1][
-                                2] and not sampled_map[i - 1][j + 1][2]:  # пв
-                        G.add_edge(name, name - sampled_map.shape[1] + 1,
-                                   weight=w_diag)
-                    if not sampled_map[i][j + 1][2] and not \
-                            sampled_map[i + 1][j][
-                                2] and not sampled_map[i + 1][j + 1][2]:  # пн
-                        G.add_edge(name, name + sampled_map.shape[1] + 1,
-                                   weight=w_diag)
-                    if not sampled_map[i + 1][j][2] and not \
-                            sampled_map[i][j - 1][
-                                2] and not sampled_map[i + 1][j - 1][2]:  # лн
-                        G.add_edge(name, name + sampled_map.shape[1] - 1,
-                                   weight=w_diag)
-                    if not sampled_map[i][j - 1][2] and not \
-                            sampled_map[i - 1][j][
-                                2] and not sampled_map[i - 1][j - 1][2]:  # лв
-                        G.add_edge(name, name - sampled_map.shape[1] - 1,
-                                   weight=w_diag)
+                    check_ru(name, i, j)
+                    check_rd(name, i, j)
+                    check_ld(name, i, j)
+                    check_lu(name, i, j)
 # print(len(G.nodes()), G.nodes())
 # print(len(G.edges()), G.edges())
 # print(nx.dijkstra_path(G, 0, 20))

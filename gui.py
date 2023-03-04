@@ -27,7 +27,7 @@ print(sampled_map.shape)
 pygame.init()
 screen = pygame.display.set_mode(size)
 pygame.display.set_caption(
-    "Click 'LMB' to set Start position, 'RMB' - Finish position, then press 'D', 'A', 'R' to start algorithm of Dijkstra, A* or RRT respectively.")
+    "Click 'LMB' to set Start position (PINK), 'RMB' - Finish position (GREEN), then press 'D', 'A', 'R' to start algorithm of Dijkstra, A* or RRT respectively.")
 
 
 def draw_bot(ind_x, ind_y, w=0):  # аналог j и i
@@ -36,6 +36,14 @@ def draw_bot(ind_x, ind_y, w=0):  # аналог j и i
     y_r = -sampled_map[ind_y][ind_x][1] + sampled_map[0][0][1] + (
             dl + margin) * ind_y + offset[1] + dl / 2
     pygame.draw.circle(screen, yellow, (x_r, y_r), dl / 2 * 0.95)
+
+
+def draw_track(ind_x, ind_y):
+    x_t = sampled_map[ind_y][ind_x][0] - sampled_map[0][0][0] + (
+            dl + margin) * ind_x + offset[0] + dl / 2
+    y_t = -sampled_map[ind_y][ind_x][1] + sampled_map[0][0][1] + (
+            dl + margin) * ind_y + offset[1] + dl / 2
+    pygame.draw.circle(screen, (255, 255, 0), (x_t, y_t), dl / 2 * 0.2)
 
 
 def draw_finish(ind_x, ind_y):
@@ -59,14 +67,10 @@ def draw_start(ind_x, ind_y):
 
 
 def dijkstra(s, f):
-    # global index_bot
-    print(s, f)
     print('Dijkstra in progress...')
-    print(nx.dijkstra_path(G, s, f))
-    # path = nx.dijkstra_path(G, s, f)
-    # for i, cell in enumerate(path):
-    #     index_bot = [cell % sampled_map.shape[1], cell // sampled_map.shape[1]]
-    return nx.dijkstra_path(G, s, f)
+    lenght, path = nx.single_source_dijkstra(G, s, f)
+    print('Длина пути: {} м'.format(round(lenght, 2)))
+    return path
 
 
 def a_star():
@@ -214,7 +218,9 @@ index_start = [-10, -10]
 index_finish = [-10, -10]
 isInProgress = False
 isSetObj = [False, False]  # start/bot, finish
+isNewEnvir = False
 clock = pygame.time.Clock()
+path_track = []
 while True:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -227,6 +233,7 @@ while True:
             indexes = [(mouse_xy[0] - offset[0]) // (dl + margin),
                        (mouse_xy[1] - offset[1]) // (dl + margin)]
             if not sampled_map[indexes[1]][indexes[0]][2]:
+                isNewEnvir = True
                 if event.button == 1:
                     index_start = indexes
                     index_bot = indexes
@@ -237,6 +244,7 @@ while True:
         elif event.type == pygame.KEYUP and not isInProgress:
             if isSetObj[0] * isSetObj[1]:
                 if event.key == pygame.K_d:
+                    isNewEnvir = True
                     isInProgress = True
                     print('s', index_start)
                     print('f', index_finish)
@@ -244,16 +252,24 @@ while True:
                         index_start[1] * sampled_map.shape[1] + index_start[0],
                         index_finish[1] * sampled_map.shape[1] + index_finish[
                             0])
+                    path_track = []
+                    isNewEnvir = False
                     fps = fps_move
                 elif event.key == pygame.K_a:
+                    isNewEnvir = True
                     isInProgress = True
                     a_star()
-                    path = [0]
+                    path = []
+                    path_track = []
+                    isNewEnvir = False
                     fps = fps_move
                 elif event.key == pygame.K_r:
+                    isNewEnvir = True
                     isInProgress = True
                     rrt()
-                    path = [0]
+                    path = []
+                    path_track = []
+                    isNewEnvir = False
                     fps = fps_move
 
     for i in range(len(sampled_map)):
@@ -271,11 +287,15 @@ while True:
 
     draw_start(index_start[0], index_start[1])
     draw_finish(index_finish[0], index_finish[1])
+    if len(path_track) and not isNewEnvir:
+        for t in path_track:
+            draw_track(t % sampled_map.shape[1], t // sampled_map.shape[1])
     draw_bot(index_bot[0], index_bot[1])
 
     if isInProgress:
-        if len(path) > 0:
+        if len(path):
             cell = path.pop(0)
+            path_track.append(cell)
             # print(cell)
             index_bot = [cell % sampled_map.shape[1],
                          cell // sampled_map.shape[1]]

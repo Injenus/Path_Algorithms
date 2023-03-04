@@ -1,18 +1,15 @@
 """
 Вход - numpy массив точек карты
-Выход - numpy массив квадратиков карты
-
+Выход - numpy массив центров квадратиков карты
 """
 input_file = 'Map_np_data.npy'
 ouput_file = 'Sampled_map'
 
 import numpy as np
-import matplotlib.pyplot as plt
-import time
 
-dl = 0.15  # длина ребра квадратика
-koef_d = 3  # кол-во голосов для признания препятсвия
-tolerance = 0.03  # допуск редьюса
+dl = 0.65  # длина ребра квадратика
+koef_d = 195  # кол-во голосов для признания препятствия
+tolerance = 0.01 # допуск редьюса
 
 raw_map = np.load(input_file)
 min_xy = np.amin(raw_map, axis=0)
@@ -44,10 +41,11 @@ raw_map = reduce_by_axis(raw_map, tolerance, 'x')
 
 for i in range(int(count_xy[1])):
     row_map = np.ndarray(shape=(0, 3), dtype=float)
-    #print('создание/ строка {}'.format(i))
+    # print('создание/ строка {}'.format(i))
     for j in range(int(count_xy[0])):
         # xc, yc = min_xy[0] + j * dl + dl / 2, max_xy[1] - i * dl + dl / 2
         xc, yc = j * dl + dl / 2, -i * dl + dl / 2
+        #xc, yc = j * dl, -i * dl
         row_map = np.append(row_map, [[xc, yc, 0]], axis=0)
     sampled_map = np.concatenate(
         (sampled_map, np.reshape(row_map, (-1, int(count_xy[0]), 3))), axis=0)
@@ -57,7 +55,8 @@ raw_map = raw_map[raw_map[:, 1].argsort()[::1]]
 for i in range(int(count_xy[1])):
     print('стр.{}(~{}%)'.format(i, round((i + 1) / int(count_xy[1]) * 100, 1)))
     for j in range(int(count_xy[0])):
-        xc, yc = sampled_map[i][j][0]+min_xy[0], sampled_map[i][j][1]+max_xy[1]
+        xc, yc = sampled_map[i][j][0] + min_xy[0], sampled_map[i][j][1] + \
+                 max_xy[1]
         num = 0
         k = 0
         while k < len(raw_map):
@@ -72,42 +71,4 @@ for i in range(int(count_xy[1])):
             k += 1
         sampled_map[i][j][2] = 1 if num // koef_d else 0
 
-# for i in range(int(count_xy[1])):
-#     print('строка {}'.format(i))
-#     for j in range(int(count_xy[0])):
-#         # print('столбец {}, строка {}'.format(j, i))
-#         xc, yc = min_xy[0] + j * dl + dl / 2, max_xy[1] - i * dl + dl / 2
-#         num = 0
-#         k = 0
-#         while k < len(indexed_raw_map):
-#             it += 1
-#             if True:  # indexed_raw_map[k][2] not in added:
-#                 t += 1
-#                 # print('в строке {} столбца {} для точки {} '.format(i,j,k))
-#                 p_xy = indexed_raw_map[k]
-#
-#                 if xc + dl / 2 > p_xy[0] >= xc - dl / 2 and yc + dl / 2 >= \
-#                         p_xy[
-#                             1] > yc - dl / 2:
-#                     num += 1
-#                     # added.append(p_xy[2])
-#                     indexed_raw_map = np.delete(indexed_raw_map, k, axis=0)
-#                     p += 1
-#                     k-=1
-#                     if num == 5:
-#                         break
-#             k += 1
-#         num = 1 if num >= 5 else 0
-#         blank_map = np.append(blank_map, [[xc, yc, num]], axis=0)
-# print(blank_map, blank_map.shape)
-# np.save('blank_map', blank_map)
 np.save('Sampled_map', sampled_map)
-# for point in range(len(blank_map)):
-#     print(blank_map[point])
-
-# print(added, len(added))
-# print('всего проверок', t)
-# print('всего просм. точек', it)
-# print('всего подошло точек', p)
-# plt.scatter(blank_map[:, 0], blank_map[:, 1])
-# plt.show()

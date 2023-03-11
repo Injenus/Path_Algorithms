@@ -16,7 +16,7 @@ import pygame
 
 Карту можно сделать замкнутой (поверхность тора) - параметр isClosedSurface
 """
-isClosedSurface = True
+isClosedSurface = False
 r_bot = 0.65  # диаметр робота в метрах
 speed = 4  # скорость движения робота в м/с
 
@@ -118,7 +118,7 @@ os.environ['SDL_VIDEO_WINDOW_POS'] = str(
 screen = pygame.display.set_mode(size)
 
 pygame.display.set_caption(
-    "'LMB' - set Start (PINK), 'RMB' - set Finish (GREEN), 'D' - Dijkstra, 'A' - A*, 'B' - bA*, 'M' - mA*, 'R' - RRT.")
+    "'LMB' - set Start (PINK), 'RMB' - set Finish (GREEN), 'D' - Dijkstra, 'A' - A*, 'B' - bA*, 'M' - mA*, 'U' - uA*, 'R' - RRT.")
 
 
 def draw_bot(ind_x, ind_y, w=0):  # аналог j и i
@@ -697,8 +697,9 @@ def massive_a_star(s, f):
             # return ((xy_o[0] - xy_i[0]) ** 2 + (xy_o[1] - xy_i[1]) ** 2) ** 0.5
             return max(abs(xy_o[0] - xy_i[0]), abs(xy_o[1] - xy_i[1]))
 
-    print('< Массивный A* ищет путь среди {} вершин и {} рёбер... >'.format(graph_size,
-                                                                  G.number_of_edges()))
+    print('< Массивный A* ищет путь среди {} вершин и {} рёбер... >'.format(
+        graph_size,
+        G.number_of_edges()))
     min_label = np.ndarray(shape=(0, 4), dtype=float)
     unvisited_nodes = np.ndarray(shape=(0, 4), dtype=float)
     for i in range(graph_size):
@@ -812,6 +813,301 @@ def massive_a_star(s, f):
         path = []
         print('Путь не существует!')
     # print(pathes)
+    return path
+
+
+def uber_a_star(s, f):
+    if s == f:
+        print(
+            '< Улучшенный A* даже не искал путь среди {} вершин и {} рёбер! Не балуйтесь симулятором... >'.format(
+                graph_size, G.number_of_edges()))
+        print('Вершины не изучались, длина пути 0 м, шагов пройдено тоже 0')
+        return [f]
+
+    def huer(currnet_node, target):
+        global isClosedSurface
+        xy_o = (currnet_node % sampled_map.shape[1],
+                currnet_node // sampled_map.shape[1])
+        xy_i = (target % sampled_map.shape[1], target // sampled_map.shape[1])
+        if isClosedSurface:
+            # return 0  # 0 на торе стабильнее синусов :)
+            koef_xy = (
+                sampled_map.shape[1] / 2 * real_dl,
+                sampled_map.shape[0] / 2 * real_dl)
+            xy_o_sin = (math.sin(xy_o[0] / sampled_map.shape[1]),
+                        math.sin(xy_o[1] / sampled_map.shape[0]))
+            xy_i_sin = (math.sin(xy_i[0] / sampled_map.shape[1]),
+                        math.sin(xy_i[1] / sampled_map.shape[0]))
+            # return ((koef_xy[0] * (xy_o_sin[0] - xy_i_sin[0])) ** 2 + (
+            #         koef_xy[1] * (xy_o_sin[1] - xy_i_sin[1])) ** 2) ** 0.5
+            return max(abs(koef_xy[0] * (xy_o_sin[0] - xy_i_sin[0])), abs(
+                koef_xy[1] * (xy_o_sin[1] - xy_i_sin[1])))
+        else:
+            # return ((xy_o[0] - xy_i[0]) ** 2 + (xy_o[1] - xy_i[1]) ** 2) ** 0.5
+            return max(abs(xy_o[0] - xy_i[0]), abs(xy_o[1] - xy_i[1]))
+
+    print(
+        '< Улушенный A* ищет путь среди {} вершин и {} рёбер... >'.format(
+            graph_size, G.number_of_edges()))
+    min_label_s = np.ndarray(shape=(0, 4), dtype=float)
+    unvisited_nodes_s = np.ndarray(shape=(0, 4), dtype=float)
+    min_label_f = np.ndarray(shape=(0, 4), dtype=float)
+    unvisited_nodes_f = np.ndarray(shape=(0, 4), dtype=float)
+    for i in range(graph_size):
+        to_append_s = [i, float('inf'), huer(i, f), float('inf')]
+        min_label_s = np.append(min_label_s, [to_append_s], axis=0)
+        unvisited_nodes_s = np.append(unvisited_nodes_s, [to_append_s], axis=0)
+
+        to_append_f = [i, float('inf'), huer(i, s), float('inf')]
+        min_label_f = np.append(min_label_f, [to_append_f], axis=0)
+        unvisited_nodes_f = np.append(unvisited_nodes_f, [to_append_f], axis=0)
+
+    min_label_s[s][1] = 0
+    unvisited_nodes_s[s][1] = 0
+
+    min_label_f[f][1] = 0
+    unvisited_nodes_f[f][1] = 0
+    pathes_s = [[s] for i in range(graph_size)]
+    pathes_f = [[f] for i in range(graph_size)]
+
+    k = 1
+    cur_node_s = s
+    cur_node_f = f
+    sampled_map[s // sampled_map.shape[1]][s % sampled_map.shape[1]][2] = 0.5
+    sampled_map[f // sampled_map.shape[1]][f % sampled_map.shape[1]][2] = 0.5
+
+    isAssembled = False
+    while k < graph_size:
+        if cur_node_s == f and len(pathes_s[f]) > 1:
+            break
+        if cur_node_f == s and len(pathes_f[s]) > 1:
+            break
+
+        if cur_node_s == cur_node_f:
+            isAssembled = True
+            print('ura')
+
+        to_visit_s = [n for n in G.neighbors(int(cur_node_s))]
+        to_visit_f = [n for n in G.neighbors(int(cur_node_f))]
+        target_node_s = [float('inf'),
+                         float('inf')]  # сод. имя и сумму узла, в кот. пойдём
+        target_node_f = [float('inf'),
+                         float('inf')]  # сод. имя и сумму узла, в кот. пойдём
+
+        # cur_node_s = check_neighbors(cur_node_s, to_visit_s, target_node_s,
+        #                              unvisited_nodes_s, min_label_s, pathes_s,f)
+
+        ########## для варианта от старта
+        for i, node in enumerate(to_visit_s):
+            try:
+                ind = np.where(unvisited_nodes_s == node)[0][0]
+            except IndexError:
+                continue
+            label = \
+                unvisited_nodes_s[
+                    np.where(unvisited_nodes_s == cur_node_s)[0][0]][
+                    1] + \
+                G.edges[[cur_node_s, node]]['weight']
+            if label < unvisited_nodes_s[ind][1]:
+                unvisited_nodes_s[ind][1] = label
+                unvisited_nodes_s[ind][3] = label + unvisited_nodes_s[ind][2]
+                min_label_s[np.where(min_label_s == node)[0][0]][1] = label
+                min_label_s[np.where(min_label_s == node)[0][0]][3] = label + \
+                                                                      min_label_s[
+                                                                          np.where(
+                                                                              min_label_s == node)[
+                                                                              0][
+                                                                              0]][
+                                                                          2]
+                pathes_s[node] = pathes_s[int(cur_node_s)] + [int(node)]
+            if unvisited_nodes_s[ind][2] == float('inf'):
+                unvisited_nodes_s[ind][2] = \
+                    min_label_s[np.where(min_label_s == node)[0][0]][2] = huer(
+                    node, f)
+            node_info = unvisited_nodes_s[ind]
+            if node_info[3] < target_node_s[1]:
+                target_node_s[0] = node  # или node_info[0]
+                target_node_s[1] = node_info[3]
+
+            to_visit_child_s = [n for n in G.neighbors(int(node))]
+            # проверяем "округу округи" старта
+            for j, node_ch in enumerate(to_visit_child_s):
+                try:
+                    ind_ch = np.where(unvisited_nodes_s == node_ch)[0][0]
+                except IndexError:
+                    continue
+                lbl_ch = \
+                    unvisited_nodes_s[
+                        np.where(unvisited_nodes_s == node)[0][0]][
+                        1] + \
+                    G.edges[[node, node_ch]]['weight']
+                if lbl_ch < unvisited_nodes_s[ind_ch][1]:
+                    unvisited_nodes_s[ind_ch][1] = lbl_ch
+                    unvisited_nodes_s[ind_ch][3] = lbl_ch + \
+                                                   unvisited_nodes_s[ind_ch][2]
+                    min_label_s[np.where(min_label_s == node_ch)[0][0]][
+                        1] = lbl_ch
+                    min_label_s[np.where(min_label_s == node_ch)[0][0]][
+                        3] = lbl_ch + \
+                             min_label_s[
+                                 np.where(min_label_s == node_ch)[0][0]][2]
+                    pathes_s[node_ch] = pathes_s[int(node)] + [int(node_ch)]
+                    if unvisited_nodes_s[ind_ch][2] == float('inf'):
+                        unvisited_nodes_s[ind_ch][2] = \
+                            min_label_s[
+                                np.where(min_label_s == node_ch)[0][0]][
+                                2] = huer(node_ch)
+
+                    if not sampled_map[int(node) // sampled_map.shape[1]][
+                        int(node) % sampled_map.shape[1]][2]:
+                        sampled_map[int(node) // sampled_map.shape[1]][
+                            int(node) % sampled_map.shape[1]][2] = 0.5
+
+        unvisited_nodes_s = np.delete(unvisited_nodes_s,
+                                      np.where(
+                                          unvisited_nodes_s == cur_node_s)[0][
+                                          0], axis=0)
+
+        if target_node_s[0] == float('inf'):
+            unvisited_nodes_s = unvisited_nodes_s[
+                unvisited_nodes_s[:, 3].argsort()[::1]]
+            target_node_s[0] = unvisited_nodes_s[0][0]
+            # print(target_node)
+            # if target_node[0] == float('inf'):
+            #     print('< Путь не существует! >')
+            #     break
+        cur_node_s = target_node_s[0]
+
+        if not sampled_map[int(cur_node_s) // sampled_map.shape[1]][
+            int(cur_node_s) % sampled_map.shape[1]][2]:
+            sampled_map[int(cur_node_s) // sampled_map.shape[1]][
+                int(cur_node_s) % sampled_map.shape[1]][2] = 0.5
+        ####### для от старта кончился
+
+        ######для варинта от финиша
+        for i, node in enumerate(to_visit_f):
+            try:
+                ind = np.where(unvisited_nodes_f == node)[0][0]
+            except IndexError:
+                continue
+            label = \
+                unvisited_nodes_f[
+                    np.where(unvisited_nodes_f == cur_node_f)[0][0]][
+                    1] + \
+                G.edges[[cur_node_f, node]]['weight']
+            if label < unvisited_nodes_f[ind][1]:
+                unvisited_nodes_f[ind][1] = label
+                unvisited_nodes_f[ind][3] = label + unvisited_nodes_f[ind][2]
+                min_label_f[np.where(min_label_f == node)[0][0]][1] = label
+                min_label_f[np.where(min_label_f == node)[0][0]][3] = label + \
+                                                                      min_label_f[
+                                                                          np.where(
+                                                                              min_label_f == node)[
+                                                                              0][
+                                                                              0]][
+                                                                          2]
+                pathes_f[node] = pathes_f[int(cur_node_f)] + [int(node)]
+            if unvisited_nodes_f[ind][2] == float('inf'):
+                unvisited_nodes_f[ind][2] = \
+                    min_label_f[np.where(min_label_f == node)[0][0]][2] = huer(
+                    node, s)
+            node_info = unvisited_nodes_f[ind]
+            if node_info[3] < target_node_f[1]:
+                target_node_f[0] = node  # или node_info[0]
+                target_node_f[1] = node_info[3]
+
+            to_visit_child_f = [n for n in G.neighbors(int(node))]
+            # проверяем "округу округи" финиш
+            for k, node_ch in enumerate(to_visit_child_f):
+                try:
+                    ind_ch = np.where(unvisited_nodes_f == node_ch)[0][0]
+                except IndexError:
+                    continue
+                lbl_ch = \
+                    unvisited_nodes_f[
+                        np.where(unvisited_nodes_f == node)[0][0]][
+                        1] + \
+                    G.edges[[node, node_ch]]['weight']
+                if lbl_ch < unvisited_nodes_f[ind_ch][1]:
+                    unvisited_nodes_f[ind_ch][1] = lbl_ch
+                    unvisited_nodes_f[ind_ch][3] = lbl_ch + \
+                                                   unvisited_nodes_f[ind_ch][2]
+                    min_label_f[np.where(min_label_f == node_ch)[0][0]][
+                        1] = lbl_ch
+                    min_label_f[np.where(min_label_f == node_ch)[0][0]][
+                        3] = lbl_ch + \
+                             min_label_f[
+                                 np.where(min_label_f == node_ch)[0][0]][2]
+                    pathes_f[node_ch] = pathes_f[int(node)] + [int(node_ch)]
+                    if unvisited_nodes_f[ind_ch][2] == float('inf'):
+                        unvisited_nodes_f[ind_ch][2] = \
+                            min_label_f[
+                                np.where(min_label_f == node_ch)[0][0]][
+                                2] = huer(node_ch)
+
+                    if not sampled_map[int(node) // sampled_map.shape[1]][
+                        int(node) % sampled_map.shape[1]][2]:
+                        sampled_map[int(node) // sampled_map.shape[1]][
+                            int(node) % sampled_map.shape[1]][2] = 0.5
+
+        unvisited_nodes_f = np.delete(unvisited_nodes_f,
+                                      np.where(
+                                          unvisited_nodes_f == cur_node_f)[
+                                          0][
+                                          0], axis=0)
+
+        if target_node_f[0] == float('inf'):
+            unvisited_nodes_f = unvisited_nodes_f[
+                unvisited_nodes_f[:, 3].argsort()[::1]]
+            target_node_f[0] = unvisited_nodes_f[0][0]
+            # print(target_node)
+            # if target_node[0] == float('inf'):
+            #     print('< Путь не существует! >')
+            #     break
+        cur_node_f = target_node_f[0]
+
+        if not sampled_map[int(cur_node_f) // sampled_map.shape[1]][
+            int(cur_node_f) % sampled_map.shape[1]][2]:
+            sampled_map[int(cur_node_f) // sampled_map.shape[1]][
+                int(cur_node_f) % sampled_map.shape[1]][2] = 0.5
+        ###### для от финиша кончился
+
+        k += 1
+
+    # print('< Посещено узлов: {}, время работы: {} с >'.format(k,
+    #                                                           time.time() - init_time))
+    print('< Изучено вершин: {} >'.format(k))
+    if min_label_s[np.where(min_label_s == f)[0][0]][1] < \
+            min_label_f[np.where(min_label_f == s)[0][0]][1]:
+        path = pathes_s[f]
+        if len(path) > 1:
+            print('Длина пути: {} м, шагов: {}'.format(
+                round(min_label_s[np.where(min_label_s == f)[0][0]][1], 3),
+                len(path) - 1))
+        # elif cur_node == f:
+        #     path = []
+        #     print(
+        #         'Путь не существует! <завершили досрочно, так как случайно ткнулись в финиш, до которого нет пути>')
+        else:
+            # print(path)
+            path = []
+            print('Путь не существует!')
+        # print(pathes)
+    else:
+        path = list(reversed(pathes_f[s]))
+        if len(path) > 1:
+            print('Длина пути: {} м, шагов: {}'.format(
+                round(min_label_f[np.where(min_label_f == s)[0][0]][1], 3),
+                len(path) - 1))
+        # elif cur_node == f:
+        #     path = []
+        #     print(
+        #         'Путь не существует! <завершили досрочно, так как случайно ткнулись в финиш, до которого нет пути>')
+        else:
+            # print(path)
+            path = []
+            print('Путь не существует!')
+        # print(pathes)
     return path
 
 
@@ -1090,6 +1386,17 @@ while True:
                     isNewEnvir = True
                     isInProgress = True
                     path = massive_a_star(
+                        index_start[1] * sampled_map.shape[1] + index_start[0],
+                        index_finish[1] * sampled_map.shape[1] + index_finish[
+                            0])
+                    path_track = []
+                    isNewEnvir = False
+                    fps = fps_move
+                elif event.key == pygame.K_u:
+                    redraw_map(sampled_map)
+                    isNewEnvir = True
+                    isInProgress = True
+                    path = uber_a_star(
                         index_start[1] * sampled_map.shape[1] + index_start[0],
                         index_finish[1] * sampled_map.shape[1] + index_finish[
                             0])

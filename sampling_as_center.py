@@ -3,14 +3,13 @@
 Выход - numpy массив центров квадратиков карты
 """
 input_file = 'Map_np_data.npy'
-ouput_file = 'Sampled_map'
+ouput_file = 'Sampled_map_as_center'
 
 import numpy as np
 
-dl = 2.2  # длина ребра квадратика _ 0.06 0.1 0.14 0.22 0.65 2.2
-koef_d = 9000  # кол-во голосов для признания препятствия _ 4 6 9 30 190 9000
-tolerance = 0.03  # допуск редьюса _ 0.02 0.03 0.03 0.03 0.1 0.03
-
+dl = 0.22
+tol = 0.03
+reduce_toler = 0.0001  # допуск редьюса 0.03
 raw_map = np.load(input_file)
 min_xy = np.amin(raw_map, axis=0)
 max_xy = np.amax(raw_map, axis=0)
@@ -36,8 +35,8 @@ def reduce_by_axis(arr, toler, axis='y', direc=1):
 
 
 sampled_map = np.zeros((1, int(count_xy[0]), 3))
-raw_map = reduce_by_axis(raw_map, tolerance, 'y')
-raw_map = reduce_by_axis(raw_map, tolerance, 'x')
+raw_map = reduce_by_axis(raw_map, reduce_toler, 'y')
+raw_map = reduce_by_axis(raw_map, reduce_toler, 'x')
 
 for i in range(int(count_xy[1])):
     row_map = np.ndarray(shape=(0, 3), dtype=float)
@@ -57,18 +56,12 @@ for i in range(int(count_xy[1])):
     for j in range(int(count_xy[0])):
         xc, yc = sampled_map[i][j][0] + min_xy[0], sampled_map[i][j][1] + \
                  max_xy[1]
-        num = 0
         k = 0
         while k < len(raw_map):
             p_xy = raw_map[k]
-            if xc + dl / 2 > p_xy[0] >= xc - dl / 2 and yc + dl / 2 >= p_xy[
-                1] > yc - dl / 2:
-                num += 1
-                raw_map = np.delete(raw_map, k, axis=0)
-                k -= 1
-                if num == koef_d:
-                    break
+            if xc + tol > p_xy[0] >= xc - tol and yc + tol >= p_xy[
+                1] > yc - tol:
+                sampled_map[i][j][2] = 1
             k += 1
-        sampled_map[i][j][2] = 1 if num // koef_d else 0
 
 np.save(ouput_file, sampled_map)

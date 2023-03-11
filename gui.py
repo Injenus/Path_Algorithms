@@ -25,8 +25,8 @@ display_info = pygame.display.Info()
 prelim_size = (
     int(display_info.current_w * 0.85), int(display_info.current_h * 0.85))
 
-# sampled_map = np.load('Sampled_map_as_center_0073_001.npy')
-sampled_map = np.load('Sampled_map_as_center_01_0015.npy')
+# sampled_map = np.load('Sampled_map_022.npy')
+sampled_map = np.load('Sampled_map_as_center_022_003.npy')
 colmns, rows = sampled_map.shape[1], sampled_map.shape[0]
 
 margin = int(1)
@@ -509,7 +509,7 @@ def bidirect_a_star(s, f):
 
         if cur_node_s == cur_node_f:
             isAssembled = True
-            print('ura')
+            # print('ura')
 
         to_visit_s = [n for n in G.neighbors(int(cur_node_s))]
         to_visit_f = [n for n in G.neighbors(int(cur_node_f))]
@@ -632,7 +632,7 @@ def bidirect_a_star(s, f):
 
     # print('< Посещено узлов: {}, время работы: {} с >'.format(k,
     #                                                           time.time() - init_time))
-    print('< Изучено вершин: {} >'.format(k))
+    # print('< Изучено вершин: {} >'.format(k))
     if min_label_s[np.where(min_label_s == f)[0][0]][1] < \
             min_label_f[np.where(min_label_f == s)[0][0]][1]:
         path = pathes_s[f]
@@ -798,7 +798,7 @@ def massive_a_star(s, f):
         k += 1
     # print('< Посещено узлов: {}, время работы: {} с >'.format(k,
     #                                                           time.time() - init_time))
-    print('< Изучено вершин: {} >'.format(k))
+    # print('< Изучено вершин: {} >'.format(k))
     path = pathes[f]
     if len(path) > 1:
         print('Длина пути: {} м, шагов: {}'.format(
@@ -847,7 +847,7 @@ def uber_a_star(s, f):
             return max(abs(xy_o[0] - xy_i[0]), abs(xy_o[1] - xy_i[1]))
 
     print(
-        '< Улушенный A* ищет путь среди {} вершин и {} рёбер... >'.format(
+        '< Улучшенный A* ищет путь среди {} вершин и {} рёбер... >'.format(
             graph_size, G.number_of_edges()))
     min_label_s = np.ndarray(shape=(0, 4), dtype=float)
     unvisited_nodes_s = np.ndarray(shape=(0, 4), dtype=float)
@@ -875,7 +875,7 @@ def uber_a_star(s, f):
     cur_node_f = f
     sampled_map[s // sampled_map.shape[1]][s % sampled_map.shape[1]][2] = 0.5
     sampled_map[f // sampled_map.shape[1]][f % sampled_map.shape[1]][2] = 0.5
-
+    n_count = 2
     isAssembled = False
     while k < graph_size:
         if cur_node_s == f and len(pathes_s[f]) > 1:
@@ -885,7 +885,7 @@ def uber_a_star(s, f):
 
         if cur_node_s == cur_node_f:
             isAssembled = True
-            print('ura')
+            # print('ura')
 
         to_visit_s = [n for n in G.neighbors(int(cur_node_s))]
         to_visit_f = [n for n in G.neighbors(int(cur_node_f))]
@@ -1076,7 +1076,7 @@ def uber_a_star(s, f):
 
     # print('< Посещено узлов: {}, время работы: {} с >'.format(k,
     #                                                           time.time() - init_time))
-    print('< Изучено вершин: {} >'.format(k))
+    # print('< Изучено вершин: {} >'.format(k))
     if min_label_s[np.where(min_label_s == f)[0][0]][1] < \
             min_label_f[np.where(min_label_f == s)[0][0]][1]:
         path = pathes_s[f]
@@ -1483,7 +1483,7 @@ while True:
         else:
             time.sleep(1 / fps_move)
             fps = fps_static
-            print('< Завершено >')
+            print('< Завершено >\n')
             isInProgress = False
 
     # pos = nx.spring_layout(G)  # pos = nx.nx_agraph.graphviz_layout(G)

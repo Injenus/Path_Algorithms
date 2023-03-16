@@ -24,7 +24,7 @@ import pygame
 
 Карту можно сделать замкнутой (поверхность тора) - параметр isClosedSurface
 """
-isClosedSurface = False
+isClosedSurface = True
 isMinkowski = True
 r_w, r_h = 0.35, 0.60  # габариты робота в метрах
 if isMinkowski:
@@ -66,8 +66,8 @@ fps = fps_static
 quan_free_nodes = np.sum(sampled_map[:, :, 2] == 0)
 
 max_d_rrt = real_dl * 4.5
-max_samples_rrt = 3000
-r_find = 1.5 * max_d_rrt
+max_samples_rrt = 4000
+r_find = 0.89 * r_bot
 if r_find > math.floor(0.95 * r_bot / real_dl) * real_dl:
     r_find = math.floor(0.95 * r_bot / real_dl) * real_dl
 
@@ -1133,14 +1133,14 @@ def rrt(s, f, dist_f, max_d=max_d_rrt):
                     # print('далеко ушли', child_node)
 
                 elif sampled_map[i_y][j_x][2] < 1:
-                    # if child_node not in T.nodes():
-                    T.add_node(child_node)
-                    T.add_edge(parent_node, child_node,
-                               weight=G.edges[[parent_node, child_node]][
-                                   'weight'])
-                    draw_node(child_node, 0.5)
-                    node_counter += 1
-                    pathes[child_node] = pathes[parent_node] + [child_node]
+                    if child_node not in T.nodes():
+                        T.add_node(child_node)
+                        T.add_edge(parent_node, child_node,
+                                   weight=G.edges[[parent_node, child_node]][
+                                       'weight'])
+                        draw_node(child_node, 0.5)
+                        node_counter += 1
+                        pathes[child_node] = pathes[parent_node] + [child_node]
                     if child_node == rand_node:
                         # print('дошли до таргета')
                         node_counter -= 1
@@ -1423,7 +1423,7 @@ def rrt_star(s, f, dist_f, max_d=max_d_rrt):
 
     def search_path(max_d=max_d):
         nonlocal pathes, node_counter, rand_node_coun, end_node_coun, isNotInToler, diffr
-        while isNotInToler and rand_node_coun < max_samples:
+        while isNotInToler or rand_node_coun < max_samples:
             # if rand_node_coun % int(0.01 * max_samples) == 0:
             #     print('~{}%'.format(
             #         round(rand_node_coun / max_samples * 100, 3)))

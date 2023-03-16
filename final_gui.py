@@ -25,7 +25,7 @@ import pygame
 Карту можно сделать замкнутой (поверхность тора) - параметр isClosedSurface
 """
 isClosedSurface = False
-isMinkowski = False
+isMinkowski = True
 r_w, r_h = 0.35, 0.60  # габариты робота в метрах
 if isMinkowski:
     r_bot = ((r_w) ** 2 + (r_h) ** 2) ** 0.5  # диаметр в метрах
@@ -1072,7 +1072,7 @@ def rrt(s, f, dist_f, max_d=max_d_rrt):
             # выбираем узел вне дерева
             xy_rand = coord_by_node(s)
             rand_node = s
-            while rand_node in T.nodes() and sampled_map[
+            while rand_node in T.nodes() or sampled_map[
                 min(rand_node // sampled_map.shape[1],
                     sampled_map.shape[0] - 1)][
                 min(rand_node % sampled_map.shape[1],
@@ -1132,19 +1132,19 @@ def rrt(s, f, dist_f, max_d=max_d_rrt):
                     draw_node(parent_node, 0.75)
                     # print('далеко ушли', child_node)
 
-                elif sampled_map[i_y][j_x][2] == 0:
+                elif sampled_map[i_y][j_x][2] < 1:
                     # if child_node not in T.nodes():
                     T.add_node(child_node)
                     T.add_edge(parent_node, child_node,
                                weight=G.edges[[parent_node, child_node]][
                                    'weight'])
-                    if draw_node(child_node, 0.5):
-                        node_counter += 1
+                    draw_node(child_node, 0.5)
+                    node_counter += 1
                     pathes[child_node] = pathes[parent_node] + [child_node]
                     if child_node == rand_node:
-                        draw_node(child_node, 0.75)
-                        node_counter -= 1
                         # print('дошли до таргета')
+                        node_counter -= 1
+                        draw_node(child_node, 0.75)
                         isGoing = False
 
                     if distance_bt_nodes(child_node, f) < dist_f:
@@ -1158,20 +1158,18 @@ def rrt(s, f, dist_f, max_d=max_d_rrt):
                             node_counter -= 1
                     else:
                         parent_node = child_node
-                        child_node = find_child(parent_node,
-                                                coord_by_node(parent_node),
-                                                ang)
+                        child_node = find_child(child_node,
+                                                coord_by_node(child_node), ang)
 
                 else:
-                    draw_node(parent_node, 0.75)
                     isGoing = False
+                    draw_node(child_node, 0.75)
                     # print('gрепятсвие')
             end_node_coun += 1
         else:
             if isNotInToler:
                 f_near_node = nearest_node_in_graph(f, T)
                 pathes[f] = pathes[f_near_node]
-                # pathes[f] = pathes[parent_node] + [child_node]
 
     search_path()
 
@@ -1425,7 +1423,7 @@ def rrt_star(s, f, dist_f, max_d=max_d_rrt):
 
     def search_path(max_d=max_d):
         nonlocal pathes, node_counter, rand_node_coun, end_node_coun, isNotInToler, diffr
-        while isNotInToler or rand_node_coun < max_samples:
+        while isNotInToler and rand_node_coun < max_samples:
             # if rand_node_coun % int(0.01 * max_samples) == 0:
             #     print('~{}%'.format(
             #         round(rand_node_coun / max_samples * 100, 3)))

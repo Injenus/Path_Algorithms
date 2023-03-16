@@ -7,8 +7,8 @@ ouput_file = 'Sampled_map_as_center'
 
 import numpy as np
 
-dl = 0.22
-tol = 0.03
+dl = 0.125/2
+tol = dl / 3
 reduce_toler = 0.0001  # допуск редьюса 0.03
 raw_map = np.load(input_file)
 min_xy = np.amin(raw_map, axis=0)
@@ -35,8 +35,8 @@ def reduce_by_axis(arr, toler, axis='y', direc=1):
 
 
 sampled_map = np.zeros((1, int(count_xy[0]), 3))
-raw_map = reduce_by_axis(raw_map, reduce_toler, 'y')
-raw_map = reduce_by_axis(raw_map, reduce_toler, 'x')
+# raw_map = reduce_by_axis(raw_map, reduce_toler, 'y')
+# raw_map = reduce_by_axis(raw_map, reduce_toler, 'x')
 
 for i in range(int(count_xy[1])):
     row_map = np.ndarray(shape=(0, 3), dtype=float)

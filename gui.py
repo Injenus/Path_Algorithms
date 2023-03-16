@@ -33,6 +33,7 @@ margin = int(1)
 offset = (0, 0)
 dl = min(prelim_size[0] // colmns - margin,
          (prelim_size[1] - 2 * offset[1]) // rows - margin)
+print(dl)
 size = ((dl + margin) * colmns, (dl + margin) * rows)
 koef_obj = 1.  # коэффициент размера объектов в клетке
 real_dl = sampled_map[0][1][0] - sampled_map[0][0][0]
@@ -140,12 +141,16 @@ def draw_track(ind_x, ind_y):
 
 def draw_finish(ind_x, ind_y):
     ds = dl * koef_obj
-    x_t = sampled_map[ind_y][ind_x][0] - sampled_map[0][0][0] + (
+    x_t = (sampled_map[ind_y][ind_x][0] - sampled_map[0][0][0]) * 1 + (
             dl + margin) * ind_x + offset[0]
-    y_t = -sampled_map[ind_y][ind_x][1] + sampled_map[0][0][1] + (
+    y_t = (-sampled_map[ind_y][ind_x][1] + sampled_map[0][0][1]) * 1 + (
             dl + margin) * ind_y + offset[1]
-    pygame.draw.rect(screen, green,
-                     (x_t + (dl - ds) / 2, y_t + (dl - ds) / 2, ds, ds))
+    pygame.draw.polygon(screen, color_f, [[x_t + dl / 2, y_t + (dl - ds) / 2],
+                                          [x_t + (dl + ds) / 2, y_t + dl / 2],
+                                          [x_t + dl / 2, y_t + (dl + ds) / 2],
+                                          [x_t + (dl - ds) / 2, y_t + dl / 2]])
+    # pygame.draw.rect(screen, color_f,
+    #                  (x_t + (dl - ds) / 2, y_t + (dl - ds) / 2, ds, ds))
 
 
 def draw_start(ind_x, ind_y):
@@ -154,16 +159,35 @@ def draw_start(ind_x, ind_y):
             dl + margin) * ind_x + offset[0]
     y_t = -sampled_map[ind_y][ind_x][1] + sampled_map[0][0][1] + (
             dl + margin) * ind_y + offset[1]
-    pygame.draw.rect(screen, pink,
-                     (x_t + (dl - ds) / 2, y_t + (dl - ds) / 2, ds, ds))
+    pygame.draw.polygon(screen, color_s, [[x_t + dl / 2, y_t + (dl - ds) / 2],
+                                          [x_t + (dl + ds) / 2, y_t + dl / 2],
+                                          [x_t + dl / 2, y_t + (dl + ds) / 2],
+                                          [x_t + (dl - ds) / 2, y_t + dl / 2]])
+    # pygame.draw.rect(screen, color_s,
+    #                  (x_t + (dl - ds) / 2, y_t + (dl - ds) / 2, ds, ds))
 
 
 def redraw_map(arr):
     for i in range(arr.shape[0]):
         for j in range(arr.shape[1]):
-            if arr[i][j][2] == 0.5:
+            if arr[i][j][2] == 0.5 or arr[i][j][2] == 0.25:
                 arr[i][j][2] = 0
     return arr
+
+
+def draw_node(node, value):
+    if value == 0.25:
+        if not sampled_map[int(node) // sampled_map.shape[1]][
+            int(node) % sampled_map.shape[1]][2]:
+            sampled_map[int(node) // sampled_map.shape[1]][
+                int(node) % sampled_map.shape[1]][2] = value
+    elif value == 0.5:
+        if not sampled_map[int(node) // sampled_map.shape[1]][
+            int(node) % sampled_map.shape[1]][2] or \
+                sampled_map[int(node) // sampled_map.shape[1]][
+                    int(node) % sampled_map.shape[1]][2] == 0.25:
+            sampled_map[int(node) // sampled_map.shape[1]][
+                int(node) % sampled_map.shape[1]][2] = 0.5
 
 
 def d_et(s, f):
@@ -249,6 +273,120 @@ def dijkstra(s, f):
     return path
 
 
+def fru_a_star(s, f):
+    if s == f:
+        print(
+            '< Тру A* даже не искал путь среди {} вершин и {} рёбер! Не балуйтесь симулятором... >'.format(
+                graph_size, G.number_of_edges()))
+        print('Вершины не изучались, длина пути 0 м, шагов пройдено тоже 0')
+        return [f]
+
+    def huer(currnet_node):
+        global isClosedSurface
+        xy_o = (currnet_node % sampled_map.shape[1],
+                currnet_node // sampled_map.shape[1])
+        xy_i = (f % sampled_map.shape[1], f // sampled_map.shape[1])
+        if isClosedSurface:
+            # return 0  # 0 на торе стабильнее синусов :)
+            koef_xy = (
+                sampled_map.shape[1] / 2 * real_dl,
+                sampled_map.shape[0] / 2 * real_dl)
+            xy_o_sin = (math.sin(xy_o[0] / sampled_map.shape[1]),
+                        math.sin(xy_o[1] / sampled_map.shape[0]))
+            xy_i_sin = (math.sin(xy_i[0] / sampled_map.shape[1]),
+                        math.sin(xy_i[1] / sampled_map.shape[0]))
+            # return ((koef_xy[0] * (xy_o_sin[0] - xy_i_sin[0])) ** 2 + (
+            #         koef_xy[1] * (xy_o_sin[1] - xy_i_sin[1])) ** 2) ** 0.5
+            return max(abs(koef_xy[0] * (xy_o_sin[0] - xy_i_sin[0])), abs(
+                koef_xy[1] * (xy_o_sin[1] - xy_i_sin[1])))
+        else:
+            # return ((xy_o[0] - xy_i[0]) ** 2 + (xy_o[1] - xy_i[1]) ** 2) ** 0.5
+            return max(abs(xy_o[0] - xy_i[0]), abs(xy_o[1] - xy_i[1]))
+
+    print(
+        '< Тру A* ищет путь среди {} вершин и {} рёбер... >'.format(graph_size,
+                                                                    G.number_of_edges()))
+    min_label = np.ndarray(shape=(0, 4), dtype=float)
+    unvisited_nodes = np.ndarray(shape=(0, 4), dtype=float)
+    for i in range(graph_size):
+        to_append = [i, float('inf'), huer(i), float('inf')]
+        min_label = np.append(min_label, [to_append], axis=0)
+        unvisited_nodes = np.append(unvisited_nodes, [to_append], axis=0)
+    min_label[s][1] = 0
+    unvisited_nodes[s][1] = 0
+    pathes = [[s] for i in range(graph_size)]
+
+    k = 1
+    cur_node = s
+    sampled_map[s // sampled_map.shape[1]][s % sampled_map.shape[1]][2] = 0.5
+    while k < graph_size:
+        if cur_node == f and len(pathes[f]) > 1:
+            break
+        to_vist = [n for n in G.neighbors(int(cur_node))]
+        target_node = [float('inf'),
+                       float('inf')]  # содер. имя и сумму узла, в кот. пойдём
+        for i, node in enumerate(to_vist):
+            try:
+                ind = np.where(unvisited_nodes == node)[0][0]
+            except IndexError:
+                continue
+            label = \
+                unvisited_nodes[np.where(unvisited_nodes == cur_node)[0][0]][
+                    1] + \
+                G.edges[[cur_node, node]]['weight']
+            if label < unvisited_nodes[ind][1]:
+                unvisited_nodes[ind][1] = label
+                unvisited_nodes[ind][3] = label + unvisited_nodes[ind][2]
+                min_label[np.where(min_label == node)[0][0]][1] = label
+                min_label[np.where(min_label == node)[0][0]][3] = label + \
+                                                                  min_label[
+                                                                      np.where(
+                                                                          min_label == node)[
+                                                                          0][
+                                                                          0]][
+                                                                      2]
+                pathes[node] = pathes[int(cur_node)] + [int(node)]
+            if unvisited_nodes[ind][2] == float('inf'):
+                unvisited_nodes[ind][2] = \
+                    min_label[np.where(min_label == node)[0][0]][2] = huer(
+                    node)
+
+
+            draw_node(node, 0.25)
+
+        unvisited_nodes = np.delete(unvisited_nodes,
+                                    np.where(unvisited_nodes == cur_node)[0][
+                                        0], axis=0)
+
+        unvisited_nodes = unvisited_nodes[
+            unvisited_nodes[:, 3].argsort()[::1]]
+        target_node[0] = unvisited_nodes[0][0]
+        if target_node[0] == float('inf'):
+            print('bc')
+        cur_node = target_node[0]
+
+        draw_node(cur_node, 0.5)
+        k += 1
+    # print('< Посещено узлов: {}, время работы: {} с >'.format(k,
+    #                                                           time.time() - init_time))
+    print('< Изучено вершин: {} >'.format(k))
+    path = pathes[f]
+    if len(path) > 1:
+        print('Длина пути: {} м, шагов: {}'.format(
+            round(min_label[np.where(min_label == f)[0][0]][1], 3),
+            len(path) - 1))
+    # elif cur_node == f:
+    #     path = []
+    #     print(
+    #         'Путь не существует! <завершили досрочно, так как случайно ткнулись в финиш, до которого нет пути>')
+    else:
+        # print(path)
+        path = []
+        print('Путь не существует!')
+    # print(pathes)
+    return path
+
+
 def a_star(s, f):
     """
     Идея как у Дейкстры, но берём вершину из to_list по минимальной сумме
@@ -293,8 +431,8 @@ def a_star(s, f):
             return max(abs(koef_xy[0] * (xy_o_sin[0] - xy_i_sin[0])), abs(
                 koef_xy[1] * (xy_o_sin[1] - xy_i_sin[1])))
         else:
-            # return ((xy_o[0] - xy_i[0]) ** 2 + (xy_o[1] - xy_i[1]) ** 2) ** 0.5
-            return max(abs(xy_o[0] - xy_i[0]), abs(xy_o[1] - xy_i[1]))
+            return ((xy_o[0] - xy_i[0]) ** 2 + (xy_o[1] - xy_i[1]) ** 2) ** 0.5
+            #return max(abs(xy_o[0] - xy_i[0]), abs(xy_o[1] - xy_i[1]))
 
     print('< A* ищет путь среди {} вершин и {} рёбер... >'.format(graph_size,
                                                                   G.number_of_edges()))
@@ -347,6 +485,8 @@ def a_star(s, f):
                 target_node[0] = node  # или node_info[0]
                 target_node[1] = node_info[3]
 
+            draw_node(node, 0.25)
+
         unvisited_nodes = np.delete(unvisited_nodes,
                                     np.where(unvisited_nodes == cur_node)[0][
                                         0], axis=0)
@@ -361,10 +501,7 @@ def a_star(s, f):
             #     break
         cur_node = target_node[0]
 
-        if not sampled_map[int(cur_node) // sampled_map.shape[1]][
-            int(cur_node) % sampled_map.shape[1]][2]:
-            sampled_map[int(cur_node) // sampled_map.shape[1]][
-                int(cur_node) % sampled_map.shape[1]][2] = 0.5
+        draw_node(cur_node, 0.5)
         k += 1
     # print('< Посещено узлов: {}, время работы: {} с >'.format(k,
     #                                                           time.time() - init_time))
@@ -553,6 +690,8 @@ def bidirect_a_star(s, f):
                 target_node_s[0] = node  # или node_info[0]
                 target_node_s[1] = node_info[3]
 
+            draw_node(node, 0.25)
+
         unvisited_nodes_s = np.delete(unvisited_nodes_s,
                                       np.where(
                                           unvisited_nodes_s == cur_node_s)[0][
@@ -568,10 +707,7 @@ def bidirect_a_star(s, f):
             #     break
         cur_node_s = target_node_s[0]
 
-        if not sampled_map[int(cur_node_s) // sampled_map.shape[1]][
-            int(cur_node_s) % sampled_map.shape[1]][2]:
-            sampled_map[int(cur_node_s) // sampled_map.shape[1]][
-                int(cur_node_s) % sampled_map.shape[1]][2] = 0.5
+        draw_node(cur_node_s, 0.5)
         ####### для от старта кончился
 
         ######для варинта от финиша
@@ -606,6 +742,8 @@ def bidirect_a_star(s, f):
                 target_node_f[0] = node  # или node_info[0]
                 target_node_f[1] = node_info[3]
 
+            draw_node(node, 0.25)
+
         unvisited_nodes_f = np.delete(unvisited_nodes_f,
                                       np.where(
                                           unvisited_nodes_f == cur_node_f)[
@@ -622,10 +760,7 @@ def bidirect_a_star(s, f):
             #     break
         cur_node_f = target_node_f[0]
 
-        if not sampled_map[int(cur_node_f) // sampled_map.shape[1]][
-            int(cur_node_f) % sampled_map.shape[1]][2]:
-            sampled_map[int(cur_node_f) // sampled_map.shape[1]][
-                int(cur_node_f) % sampled_map.shape[1]][2] = 0.5
+        draw_node(cur_node_f, 0.5)
         ###### для от финиша кончился
 
         k += 1
@@ -750,6 +885,8 @@ def massive_a_star(s, f):
                 target_node[0] = node  # или node_info[0]
                 target_node[1] = node_info[3]
 
+            draw_node(node, 0.25)
+
             to_visit_child = [n for n in G.neighbors(int(node))]
             # проверяем "округу округи"
             for j, node_ch in enumerate(to_visit_child):
@@ -770,15 +907,16 @@ def massive_a_star(s, f):
                         3] = lbl_ch + \
                              min_label[np.where(min_label == node_ch)[0][0]][2]
                     pathes[node_ch] = pathes[int(node)] + [int(node_ch)]
-                    if unvisited_nodes[ind_ch][2] == float('inf'):
-                        unvisited_nodes[ind_ch][2] = \
-                            min_label[np.where(min_label == node_ch)[0][0]][
-                                2] = huer(node_ch)
+                if unvisited_nodes[ind_ch][2] == float('inf'):
+                    unvisited_nodes[ind_ch][2] = \
+                        min_label[np.where(min_label == node_ch)[0][0]][
+                            2] = huer(node_ch)
+                draw_node(node_ch, 0.25)
 
-                    if not sampled_map[int(node) // sampled_map.shape[1]][
-                        int(node) % sampled_map.shape[1]][2]:
-                        sampled_map[int(node) // sampled_map.shape[1]][
-                            int(node) % sampled_map.shape[1]][2] = 0.5
+                # if not sampled_map[int(node) // sampled_map.shape[1]][
+                #     int(node) % sampled_map.shape[1]][2]:
+                #     sampled_map[int(node) // sampled_map.shape[1]][
+                #         int(node) % sampled_map.shape[1]][2] = 0.5
 
         # звершн. основ. цикл
         unvisited_nodes = np.delete(unvisited_nodes,
@@ -791,10 +929,7 @@ def massive_a_star(s, f):
             target_node[0] = unvisited_nodes[0][0]
         cur_node = target_node[0]
 
-        if not sampled_map[int(cur_node) // sampled_map.shape[1]][
-            int(cur_node) % sampled_map.shape[1]][2]:
-            sampled_map[int(cur_node) // sampled_map.shape[1]][
-                int(cur_node) % sampled_map.shape[1]][2] = 0.5
+        draw_node(cur_node, 0.5)
         k += 1
     # print('< Посещено узлов: {}, время работы: {} с >'.format(k,
     #                                                           time.time() - init_time))
@@ -952,16 +1087,16 @@ def uber_a_star(s, f):
                              min_label_s[
                                  np.where(min_label_s == node_ch)[0][0]][2]
                     pathes_s[node_ch] = pathes_s[int(node)] + [int(node_ch)]
-                    if unvisited_nodes_s[ind_ch][2] == float('inf'):
-                        unvisited_nodes_s[ind_ch][2] = \
-                            min_label_s[
-                                np.where(min_label_s == node_ch)[0][0]][
-                                2] = huer(node_ch)
+                if unvisited_nodes_s[ind_ch][2] == float('inf'):
+                    unvisited_nodes_s[ind_ch][2] = \
+                        min_label_s[
+                            np.where(min_label_s == node_ch)[0][0]][
+                            2] = huer(node_ch)
 
-                    if not sampled_map[int(node) // sampled_map.shape[1]][
-                        int(node) % sampled_map.shape[1]][2]:
-                        sampled_map[int(node) // sampled_map.shape[1]][
-                            int(node) % sampled_map.shape[1]][2] = 0.5
+                if not sampled_map[int(node_ch) // sampled_map.shape[1]][
+                    int(node_ch) % sampled_map.shape[1]][2]:
+                    sampled_map[int(node_ch) // sampled_map.shape[1]][
+                        int(node_ch) % sampled_map.shape[1]][2] = 0.25
 
         unvisited_nodes_s = np.delete(unvisited_nodes_s,
                                       np.where(
@@ -1308,8 +1443,9 @@ for i in range(len(sampled_map)):
 # print(G.edges[[0, 14]])
 
 red, blue = (255, 0, 0), (0, 0, 255)
+green_dark, green_light = (0, 160, 0), (128, 255, 128)
 gray, gray_1, gray_2 = (128, 128, 128), (128, 128, 192), (192, 128, 128)
-green, pink = (64, 255, 64), (255, 64, 255)
+color_f, color_s = (0, 0, 0), (255, 255, 255)
 yellow = (255, 153, 0)
 index_bot = [0, 0]
 index_start = [0, 0]
@@ -1337,13 +1473,15 @@ while True:
                     index_start = indexes
                     print(
                         'Старт в {} м'.format(
-                            [round(x * real_dl, 2) for x in indexes]))
+                            [round(x * real_dl + real_dl / 2, 2) for x in
+                             indexes]))
                     index_bot = indexes
                     isSetObj[0] = True
                 elif event.button == 3:
                     index_finish = indexes
                     print('Финиш в {} м'.format(
-                        [round(x * real_dl, 2) for x in indexes]))
+                        [round(x * real_dl + real_dl / 2, 2) for x in
+                         indexes]))
                     index_bot = index_start
                     isSetObj[1] = True
         elif event.type == pygame.KEYUP and not isInProgress:
@@ -1353,6 +1491,17 @@ while True:
                     isNewEnvir = True
                     isInProgress = True
                     path = dijkstra(
+                        index_start[1] * sampled_map.shape[1] + index_start[0],
+                        index_finish[1] * sampled_map.shape[1] + index_finish[
+                            0])
+                    path_track = []
+                    isNewEnvir = False
+                    fps = fps_move
+                elif event.key==pygame.K_f:
+                    redraw_map(sampled_map)
+                    isNewEnvir = True
+                    isInProgress = True
+                    path = fru_a_star(
                         index_start[1] * sampled_map.shape[1] + index_start[0],
                         index_finish[1] * sampled_map.shape[1] + index_finish[
                             0])
@@ -1454,7 +1603,10 @@ while True:
             elif sampled_map[i][j][2] == 1:
                 color = red
             elif sampled_map[i][j][2] == 0.5:
-                color = (0, 168, 192)
+                # color = (0, 168, 192)
+                color = green_dark
+            elif sampled_map[i][j][2] == 0.25:
+                color = green_light
             else:
                 color = blue
                 # color = gray
